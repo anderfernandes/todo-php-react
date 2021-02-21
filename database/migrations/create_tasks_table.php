@@ -7,8 +7,9 @@
     try {
         $database->exec("
             CREATE TABLE tasks (
-                name text, 
-                is_completed boolean
+                id           INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                name         TEXT    NOT NULL, 
+                is_completed BOOLEAN NOT NULL
             );
         ");
 

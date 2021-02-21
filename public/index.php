@@ -5,26 +5,57 @@
 
     $database->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+    $message = [];
+
     if (!empty($_POST))
     {
-        try {
-            $query = $database->prepare('
-                INSERT INTO tasks values (
-                    :name, 
-                    :is_completed
-                )
-            ');
-
-            $query->bindParam(':name', $_POST['name']);
-            $query->bindParam(':is_completed', $_POST['is_completed']);
-
-            $query->execute();
-
-            //echo ("Task {$_POST['name']} saved successfully!");
+        // Hydrate all data coming from a user even though we are not doing it
+        
+        // CREATING A TASK
+        if ($_POST['action'] ==  'create')
+        {
+            try {
+                $query = $database->prepare('
+                    INSERT INTO tasks values (
+                        :id,
+                        :name, 
+                        :is_completed
+                    )
+                ');
+    
+                $_POST['is_completed'] = array_key_exists('is_completed', $_POST);
+    
+                $query->execute([
+                    ':name'         => $_POST['name'],
+                    ':is_completed' => $_POST['is_completed'],
+                ]);
+    
+                $message['type'] = 'success';
+                $message['text'] = "Task <strong>{$_POST['name']}</strong> created successfully!";
+            }
+            catch (PDOException $e) {
+                $message['type'] = 'danger';
+                $message['text'] = $e->getMessage();
+            }
         }
-        catch (PDOException $e) {
-            echo($e->getMessage());
+
+        // DELETING A TASK
+        if ($_POST['action'] == 'delete')
+        {
+            try {
+                $query = $database->prepare('DELETE FROM tasks WHERE id = :id');
+                $query->execute([
+                    ':id' => $_POST['id']
+                ]);
+                $message['type'] = 'info';
+                $message['text'] = "Task <strong>{$_POST['name']}</strong> removed successfully!";
+            }
+            catch (PDOException $e) {
+                $message['type'] = 'danger';
+                $message['text'] = $e->getMessage();
+            }
         }
+        
     }
 
 ?>
@@ -39,12 +70,27 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
 
-    <title>Hello, world!</title>
+    <title>Todo</title>
   </head>
   <body class="container">
 
+    <h1>Todo</h1>
+
+    <hr />
+
+    <?php 
+        if (array_key_exists('text', $message))
+            echo 
+            "
+            <div class='alert alert-{$message['type']}' role='alert'>
+                {$message['text']}
+            </div>
+            "
+    ?>
+
     <form action="index.php" method="POST">
         <div class="mb-3">
+            <input type="hidden" name="action" value="create" />
             <label for="name" class="form-label">Task Name</label>
             <input type="text" name="name" class="form-control" placeholder="Enter name of the task">
         </div>
@@ -58,19 +104,20 @@
     <table class="table">
         <thead>
             <tr>
+                <th scope="col">ID</th>
                 <th scope="col">Name</th>
                 <th scope="col">Completed</th>
+                <th scope="col">Actions</th>
             </tr>
         </thead>
         <tbody>
             <?php 
-                $tasks = $database->query('
-                    SELECT * FROM tasks
-                ');
+                $tasks = $database->query('SELECT * FROM tasks');
 
                 foreach ($tasks as $task) {
                     echo "
                         <tr>
+                            <td>{$task['id']}</td>
                             <td>{$task['name']}</td>
                             <td>
                     ";
@@ -80,9 +127,22 @@
                     else
                         echo('No');*/
                     
-                    echo($task['is_completed'] == 'true' ? 'Yes' : 'No');
+                    echo $task['is_completed'] ? 'Yes' : 'No';
 
                     echo "
+                            </td>
+                            <td>
+                                <form action='index.php' method='POST'>
+                                    <input type='hidden' name='action' value='delete' />
+                                    <a href='/edit.php?id={$task['id']}' class='btn btn-outline-primary'>
+                                        Edit
+                                    </a>
+                                    <button type='submit' class='btn btn-danger'>
+                                        Delete
+                                    </button>
+                                    <input type='hidden' name='id' value='{$task['id']}' />
+                                    <input type='hidden' name='name' value='{$task['name']}' />
+                                </form>
                             </td>
                         </td>
                     ";
