@@ -1,9 +1,8 @@
-<?php 
+<?php
 
-    $database_path = "/home/anderson/todo-php-react/database/database.sqlite";            
-    $database = new PDO("sqlite:{$database_path}");
-
-    $database->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    require "../app/Database.php";
+    
+    $database = new App\Database();
 
     $message = [];
 
@@ -15,21 +14,7 @@
         if ($_POST['action'] ==  'create')
         {
             try {
-                $query = $database->prepare('
-                    INSERT INTO tasks values (
-                        :id,
-                        :name, 
-                        :is_completed
-                    )
-                ');
-    
-                $_POST['is_completed'] = array_key_exists('is_completed', $_POST);
-    
-                $query->execute([
-                    ':name'         => $_POST['name'],
-                    ':is_completed' => $_POST['is_completed'],
-                ]);
-    
+                $database->create("tasks", $_POST);
                 $message['type'] = 'success';
                 $message['text'] = "Task <strong>{$_POST['name']}</strong> created successfully!";
             }
@@ -43,10 +28,7 @@
         if ($_POST['action'] == 'delete')
         {
             try {
-                $query = $database->prepare('DELETE FROM tasks WHERE id = :id');
-                $query->execute([
-                    ':id' => $_POST['id']
-                ]);
+                $database->delete("tasks", $_POST['id']);
                 $message['type'] = 'info';
                 $message['text'] = "Task <strong>{$_POST['name']}</strong> removed successfully!";
             }
@@ -78,7 +60,8 @@
 
     <hr />
 
-    <?php 
+    <?php
+
         if (array_key_exists('text', $message))
             echo 
             "
@@ -112,7 +95,8 @@
         </thead>
         <tbody>
             <?php 
-                $tasks = $database->query('SELECT * FROM tasks');
+
+                $tasks = $database->query('tasks');
 
                 foreach ($tasks as $task) {
                     echo "

@@ -65,6 +65,7 @@
     </a>
     <br /><br />
     <?php 
+        var_dump($message);
         if (array_key_exists('text', $message))
             echo 
             "
