@@ -2,7 +2,7 @@
 
 namespace App;
 
-require("Environment.php");
+require "Environment.php";
 
 use Exception;
 use PDO;
@@ -49,7 +49,21 @@ class Database
     }
 
     /**
-     * Undocumented function
+     * Gets a row from the database
+     *
+     * @param string $table
+     * @param integer $id
+     * @return void
+     */
+    public function show(string $table, int $id)
+    {
+        $query = $this->database->query("SELECT * FROM {$table} WHERE id = {$id}");
+        
+        return $query->fetch((PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * Creates a new record into $table with $data
      *
      * @param string $table The name of the table
      * @param array $data The data to be inserted
@@ -74,6 +88,34 @@ class Database
     }
 
     /**
+     * Updates $table with $data
+     *
+     * @param string $table
+     * @param array $data
+     * @return void
+     */
+    public function update(string $table, array $data)
+    {
+        // Find data in database
+        $this->query($table);
+
+        $query = $this->database->prepare('
+            UPDATE ' . $table . ' 
+            SET  name = :name, 
+                is_completed = :is_completed
+            WHERE id = :id;
+            ');
+
+        $data['is_completed'] = array_key_exists('is_completed', $data);
+            
+        $query->execute([
+            ':id' =>$data['id'],
+            ':name' =>$data['name'],
+            'is_completed' =>$data['is_completed']
+        ]); 
+    }
+
+    /**
      * Deletes data from a table
      *
      * @param string $table The table to delete the data from
@@ -89,6 +131,20 @@ class Database
         $query->execute([
             ':id' => $id
         ]);
+    }
+
+    public function createTable(string $name, array $columns)
+    {
+        $fields = "";
+
+        foreach ($columns as $column)
+            $fields .= "{$column['name']} {$column['properties']}, ";
+
+        $fields = rtrim($fields, ', ');
+
+        $this->database->exec("CREATE TABLE IF NOT EXISTS {$name} ({$fields})");
+
+        echo("Table {$name} created succesfully! ");
     }
 }
 

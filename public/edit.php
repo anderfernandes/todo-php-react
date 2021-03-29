@@ -1,8 +1,8 @@
 <?php
-    $database_path = "/home/anderson/todo-php-react/database/database.sqlite";            
-    $database = new PDO("sqlite:{$database_path}");
 
-    $database->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    require "../app/Database.php";
+    
+    $database = new App\Database();
 
     $message = [];
 
@@ -12,17 +12,7 @@
         try {
             $_POST['is_completed'] = array_key_exists('is_completed', $_POST);
 
-            $query = $database->prepare("
-                UPDATE tasks 
-                SET name = :name, is_completed = :is_completed
-                WHERE id = :id
-            ");
-            
-            $query->execute([
-                ':id'           => $_GET['id'],
-                ':name'         => $_POST['name'],
-                ':is_completed' => $_POST['is_completed']
-            ]);
+            $database->update('tasks', $_POST);
 
             $message['type'] = 'success';
             $message['text'] = "Task <strong>{$_POST['name']}</strong> updated successfully!";
@@ -35,8 +25,7 @@
 
     // Getting task from the database
     try {
-        $query = $database->query("SELECT * FROM tasks WHERE id = {$_GET['id']}");
-        $task = $query->fetch(PDO::FETCH_ASSOC);
+        $task = $database->show('tasks', $_GET['id']);
     }
     catch (PDOException $e) {
         $message['type'] = 'danger';
@@ -65,7 +54,7 @@
     </a>
     <br /><br />
     <?php 
-        var_dump($message);
+        //var_dump($task);
         if (array_key_exists('text', $message))
             echo 
             "
@@ -77,6 +66,7 @@
     <form action="/edit.php?id=<?php echo $_GET['id'] ?>" method="POST">
         <div class="mb-3">
             <input type="hidden" name="action" value="update" />
+            <input type="hidden" name="id" value="<?php echo $_GET['id'] ?>" />
             <label for="name" class="form-label">Task Name</label>
             <input value="<?php echo $task['name'] ?>" type="text" name="name" class="form-control" placeholder="Enter name of the task">
         </div>
